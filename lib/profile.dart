@@ -21,13 +21,19 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> fetchProfileData() async {
     final response = await http.get(
-      Uri.parse('http://192.168.100.13/test6/get_profile.php?pro_id=P001'), // เปลี่ยนเป็นที่อยู่เซิร์ฟเวอร์ของคุณ
+      Uri.parse('http://192.168.1.41/test6/get_profile.php?user_id=keys1805'), // เปลี่ยนเป็นที่อยู่เซิร์ฟเวอร์ของคุณ
     );
 
+    print('Response body: ${response.body}'); // เพิ่มการแสดงผล response body
+
     if (response.statusCode == 200) {
-      setState(() {
-        profileData = json.decode(response.body);
-      });
+      try {
+        setState(() {
+          profileData = json.decode(response.body);
+        });
+      } catch (e) {
+        print('Error parsing JSON: $e');
+      }
     } else {
       throw Exception('Failed to load profile data');
     }
@@ -50,7 +56,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
 
     if (result == true) {
-      fetchProfileData();
+      fetchProfileData(); // รีเฟรชข้อมูลหลังจากที่กลับมาจากการแก้ไข
     }
   }
 
@@ -96,12 +102,12 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   SizedBox(height: 16),
                   Text(
-                    profileData!['pro_name'] ?? 'Unknown',
+                    profileData!['user_name'] ?? 'Unknown',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                  Text('@${profileData!['pro_username']}', style: TextStyle(color: Colors.grey[700])),
+                  Text('@${profileData!['user_id']}', style: TextStyle(color: Colors.grey[700])),
                   SizedBox(height: 8),
-                  Text(profileData!['pro_brief'] ?? 'ยังไม่ได้เขียนอะไรเลย'),
+                  Text(profileData!['user_text'] != null ? ' ${profileData!['user_text']}' : ' Unknown'),
                   SizedBox(height: 16),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
@@ -134,30 +140,33 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   late TextEditingController _nameController;
-  late TextEditingController _usernameController;
-  late TextEditingController _briefController;
+  late TextEditingController _idController;
+  late TextEditingController _textController;
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.profileData['pro_name'] ?? '');
-    _usernameController = TextEditingController(text: widget.profileData['pro_username'] ?? '');
-    _briefController = TextEditingController(text: widget.profileData['pro_brief'] ?? '');
+    _nameController = TextEditingController(text: widget.profileData['user_name'] ?? '');
+    _idController = TextEditingController(text: widget.profileData['user_id'] ?? '');
+    _textController = TextEditingController(text: widget.profileData['user_text']?.toString() ?? '');
   }
 
   Future<void> _saveProfile() async {
     final response = await http.post(
-      Uri.parse('http://192.168.100.13/test6/update_profile.php'), // เปลี่ยนเป็นที่อยู่เซิร์ฟเวอร์ของคุณ
+      Uri.parse('http://192.168.1.41/test6/update_profile.php'), // เปลี่ยนเป็นที่อยู่เซิร์ฟเวอร์ของคุณ
       body: {
-        'pro_id': widget.profileData['pro_id'] ?? '',
-        'pro_name': _nameController.text,
-        'pro_username': _usernameController.text,
-        'pro_brief': _briefController.text,
+        'user_id': widget.profileData['user_id'] ?? '',
+        'user_name': _nameController.text,
+        'user_text': _textController.text,
       },
     );
 
     if (response.statusCode == 200) {
-      Navigator.pop(context, true);
+      setState(() {
+        widget.profileData['user_name'] = _nameController.text;
+        widget.profileData['user_text'] = _textController.text;
+      });
+      Navigator.pop(context, true); // ส่งค่ากลับไปเพื่อรีเฟรชข้อมูลใน ProfilePage
     } else {
       throw Exception('Failed to update profile data');
     }
@@ -178,7 +187,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             children: <Widget>[
               Center(
                 child: Text(
-                  '',
+                  'แก้ไขข้อมูลโปรไฟล์',
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -193,22 +202,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
               SizedBox(height: 16),
               TextField(
-                controller: _usernameController,
+                controller: _idController,
                 decoration: InputDecoration(
-                  labelText: 'ชื่อผู้ใช้',
+                  labelText: 'รหัสผู้ใช้',
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.account_circle),
+                  prefixIcon: Icon(Icons.perm_identity),
                 ),
               ),
               SizedBox(height: 16),
               TextField(
-                controller: _briefController,
+                controller: _textController,
                 decoration: InputDecoration(
-                  labelText: 'ข้อมูลพอสังเขป',
+                  labelText: 'ข้อความ',
                   border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.info),
+                  prefixIcon: Icon(Icons.text_fields),
                 ),
-                maxLines: 3,
+                keyboardType: TextInputType.text,
               ),
               SizedBox(height: 30),
               Center(
